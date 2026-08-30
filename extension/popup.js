@@ -1,5 +1,6 @@
 import { bestMove } from './wasm-loader.js';
 import { buildState } from './state-builder.js';
+import { predictOpponentTeam } from './predict/predictor.js';
 
 const calcBtn = document.getElementById('calc');
 const statusEl = document.getElementById('status');
@@ -45,6 +46,12 @@ async function run() {
     if (!snapshot || snapshot.error) {
         return fail((snapshot && snapshot.error) || 'No active battle found on this tab.');
     }
+
+    setStatus('Predicting opponent sets…');
+    await predictOpponentTeam(snapshot.oppSide, snapshot.formatId, {
+        moveMeta: snapshot.moveMeta,
+        dexMeta: snapshot.dexMeta,
+    });
 
     setStatus('Building state…');
     let stateStr;

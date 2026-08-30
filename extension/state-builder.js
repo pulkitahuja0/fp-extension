@@ -7,16 +7,20 @@
 //
 // Known simplifications, all a consequence of imperfect information about
 // the opponent's team (nature/EVs/IVs are never revealed to an opponent):
-//  - Unrevealed opponent stats are estimated assuming a neutral nature, 31
-//    IVs, and 85 EVs in every stat (poke-engine's own DEFAULT_EVS).
-//  - Unrevealed opponent moves are left blank (engine treats them as
-//    unusable), abilities/items default to the dex's first listed ability
-//    or "none" when unknown.
+//  - Unrevealed opponent stats use a predicted nature/EV spread when
+//    predict/predictor.js supplied one (`p.predictedNature`/`p.predictedEvs`,
+//    set by popup.js before buildState() runs), else fall back to a neutral
+//    nature, 31 IVs, and 85 EVs in every stat (poke-engine's own DEFAULT_EVS).
+//  - Unrevealed opponent moves/ability/item likewise use the predictor's
+//    best guess when available, else are left blank (engine treats blank
+//    moves as unusable) / default to "none".
 //  - Side conditions that are inherently single-turn (Protect, Quick Guard,
 //    Wide Guard, Crafty Shield, Mat Block) and one-shot heals (Wish,
 //    Healing Wish, Lunar Dance) are not tracked.
 //  - rest_turns/sleep_turns default to 0 unless the client happens to know
 //    the exact sleep-turn count for our own side.
+
+import { natureMultiplier } from './predict/natures.js';
 
 const WEATHER_MAP = {
     '': 'none',
@@ -48,16 +52,18 @@ function calcStat(base, level, isHP, iv, ev, natureMod) {
     return Math.floor(flat * natureMod);
 }
 
-function estimateStats(baseStats, level) {
+function estimateStats(baseStats, level, nature, evs) {
     const iv = 31;
-    const ev = 85; // matches poke-engine's own DEFAULT_EVS assumption for unknown spreads
+    const defaultEv = 85; // matches poke-engine's own DEFAULT_EVS assumption for unknown spreads
+    const evOf = (i) => (evs ? evs[i] : defaultEv);
+    const natureMod = (stat) => (nature ? natureMultiplier(nature, stat) : 1);
     return {
-        hp: calcStat(baseStats.hp, level, true, iv, ev, 1),
-        atk: calcStat(baseStats.atk, level, false, iv, ev, 1),
-        def: calcStat(baseStats.def, level, false, iv, ev, 1),
-        spa: calcStat(baseStats.spa, level, false, iv, ev, 1),
-        spd: calcStat(baseStats.spd, level, false, iv, ev, 1),
-        spe: calcStat(baseStats.spe, level, false, iv, ev, 1),
+        hp: calcStat(baseStats.hp, level, true, iv, evOf(0), 1),
+        atk: calcStat(baseStats.atk, level, false, iv, evOf(1), natureMod('atk')),
+        def: calcStat(baseStats.def, level, false, iv, evOf(2), natureMod('def')),
+        spa: calcStat(baseStats.spa, level, false, iv, evOf(3), natureMod('spa')),
+        spd: calcStat(baseStats.spd, level, false, iv, evOf(4), natureMod('spd')),
+        spe: calcStat(baseStats.spe, level, false, iv, evOf(5), natureMod('spe')),
     };
 }
 
@@ -89,13 +95,13 @@ function serializePokemon(p, gen) {
     let hp = p.hp;
     let maxhp = p.maxhp;
     if (p.hpPercent !== null && p.hpPercent !== undefined) {
-        const est = estimateStats(p.baseStats, p.level);
+        const est = estimateStats(p.baseStats, p.level, p.predictedNature, p.predictedEvs);
         maxhp = est.hp;
         hp = Math.max(0, Math.round((p.hpPercent / 100) * maxhp));
     }
     if (p.fainted) hp = 0;
 
-    const stats = p.statsExact || estimateStats(p.baseStats, p.level);
+    const stats = p.statsExact || estimateStats(p.baseStats, p.level, p.predictedNature, p.predictedEvs);
 
     const ability = p.ability ? p.ability.toUpperCase() : 'NONE';
     const item = p.item ? p.item.toUpperCase() : 'NONE';

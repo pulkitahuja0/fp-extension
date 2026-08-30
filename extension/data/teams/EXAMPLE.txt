@@ -1,0 +1,19 @@
+Great Tusk @ Leftovers
+Ability: Protosynthesis
+Tera Type: Water
+EVs: 252 HP / 4 Atk / 252 Spe
+Jolly Nature
+- Headlong Rush
+- Ice Spinner
+- Rapid Spin
+- Stealth Rock
+
+Kingambit @ Black Glasses
+Ability: Supreme Overlord
+Tera Type: Flying
+EVs: 252 HP / 252 Atk / 4 SpD
+Adamant Nature
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
+- Swords Dance

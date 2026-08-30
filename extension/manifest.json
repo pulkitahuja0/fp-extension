@@ -7,8 +7,12 @@
         "default_popup": "popup.html",
         "default_title": "Foul Play: calculate best move"
     },
+    "permissions": [
+        "storage"
+    ],
     "host_permissions": [
-        "https://play.pokemonshowdown.com/*"
+        "https://play.pokemonshowdown.com/*",
+        "https://www.smogon.com/*"
     ],
     "content_scripts": [
         {

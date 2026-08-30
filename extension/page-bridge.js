@@ -168,6 +168,7 @@
             teraType: teraType ? teraType.toUpperCase() : null,
             megaEvolved: /-mega($|x$|y$)/i.test(speciesForme || ''),
             weightkg: dex.weightkg || 1,
+            baseSpecies: dex.baseSpecies ? toID(dex.baseSpecies) : null,
             volatiles,
             statsExact: server && server.stats
                 ? { atk: server.stats.atk, def: server.stats.def, spa: server.stats.spa, spd: server.stats.spd, spe: server.stats.spe }
@@ -217,6 +218,41 @@
             },
             pokemon,
         };
+    }
+
+    // Move/species metadata that popup.js's prediction code (extension/predict/)
+    // needs but can't see itself, since that code runs in the popup's own
+    // context, not this page's MAIN world. Pulled fresh from the client's
+    // dex tables on every snapshot rather than bundled statically, so it's
+    // never stale.
+    function buildMoveMeta() {
+        const dex = window.BattleMovedex || {};
+        const meta = {};
+        for (const [id, data] of Object.entries(dex)) {
+            meta[id] = {
+                category: (data.category || 'Status').toLowerCase(),
+                priority: data.priority || 0,
+                targetsSelf: data.target === 'self',
+                hasBoosts: !!data.boosts,
+            };
+        }
+        return meta;
+    }
+
+    function buildDexMeta() {
+        const dex = window.BattlePokedex || {};
+        const meta = {};
+        for (const [id, data] of Object.entries(dex)) {
+            const types = (data.types || ['Normal']).map((t) => t.toUpperCase());
+            while (types.length < 2) types.push('TYPELESS');
+            meta[id] = {
+                baseStats: data.baseStats || { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+                types,
+                weightkg: data.weightkg || 1,
+                baseSpecies: data.baseSpecies ? toID(data.baseSpecies) : null,
+            };
+        }
+        return meta;
     }
 
     function buildSnapshot() {
@@ -281,6 +317,8 @@
             trickRoomTurns,
             mySide,
             oppSide,
+            moveMeta: buildMoveMeta(),
+            dexMeta: buildDexMeta(),
         };
     }
 
