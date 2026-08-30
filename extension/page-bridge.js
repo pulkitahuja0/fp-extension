@@ -15,19 +15,45 @@
         return ('' + text).toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
+    // Returns { room } on success, or { room: null, diagnostic } on failure so
+    // buildSnapshot() can surface *why* nothing was found instead of a bare
+    // "no battle" message — PS's client internals aren't officially documented,
+    // so this is meant to be debuggable without opening devtools.
     function findBattleRoom() {
-        const PS = window.PS;
-        if (!PS || !PS.rooms) return null;
+        const PS = window.PS || window.app; // `app` was the pre-2023 client's global; kept as a fallback
+        if (!PS) {
+            return { room: null, diagnostic: 'window.PS is not defined (unexpected page, or the client changed).' };
+        }
+        const rooms = PS.rooms;
+        if (!rooms || typeof rooms !== 'object') {
+            return { room: null, diagnostic: 'window.PS exists but PS.rooms is missing.' };
+        }
 
-        const preferred = [PS.rightPanel, PS.leftPanel].filter((r) => r && r.battle);
+        const preferred = [PS.rightPanel, PS.leftPanel, PS.panel].filter((r) => r && r.battle);
         for (const room of preferred) {
-            if (!room.battle.ended) return room;
+            if (!room.battle.ended) return { room };
         }
-        for (const id in PS.rooms) {
-            const room = PS.rooms[id];
-            if (room && room.battle && !room.battle.ended) return room;
+
+        const roomIds = Object.keys(rooms);
+        const battleRooms = [];
+        for (const id of roomIds) {
+            const room = rooms[id];
+            if (room && room.battle) {
+                battleRooms.push({ id, ended: !!room.battle.ended });
+                if (!room.battle.ended) return { room };
+            }
         }
-        return null;
+
+        if (battleRooms.length) {
+            return {
+                room: null,
+                diagnostic: `Found battle room(s) but all are ended: ${JSON.stringify(battleRooms)}.`,
+            };
+        }
+        return {
+            room: null,
+            diagnostic: `No room with a .battle found. Open rooms: ${JSON.stringify(roomIds)}.`,
+        };
     }
 
     // PS tracks far more volatile statuses than we can confidently translate
@@ -194,9 +220,9 @@
     }
 
     function buildSnapshot() {
-        const room = findBattleRoom();
+        const { room, diagnostic } = findBattleRoom();
         if (!room) {
-            return { error: 'No active Pokemon Showdown battle found in this tab.' };
+            return { error: `No active Pokemon Showdown battle found in this tab. (${diagnostic})` };
         }
         const battle = room.battle;
         const match = /^battle-([a-z0-9]+)-/.exec(room.id);
@@ -257,6 +283,10 @@
             oppSide,
         };
     }
+
+    // Callable directly from devtools on the Showdown tab (`__foulPlayDebug()`)
+    // to see exactly what the extension sees, without going through the popup.
+    window.__foulPlayDebug = buildSnapshot;
 
     window.addEventListener('message', (event) => {
         if (event.source !== window) return;

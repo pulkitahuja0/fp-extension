@@ -40,7 +40,7 @@ async function run() {
     try {
         snapshot = await chrome.tabs.sendMessage(tab.id, { type: 'fp-get-snapshot' });
     } catch (e) {
-        return fail('Could not reach the page — try reloading the Showdown tab.');
+        return fail('Could not reach the page — try reloading the Showdown tab. (' + (e && e.message ? e.message : e) + ')');
     }
     if (!snapshot || snapshot.error) {
         return fail((snapshot && snapshot.error) || 'No active battle found on this tab.');
