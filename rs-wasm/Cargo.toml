@@ -1,0 +1,27 @@
+[package]
+name = "rs-wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+poke-engine = { path = "vendor/poke-engine", default-features = false }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = "0.1"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[features]
+gen1 = ["poke-engine/gen1"]
+gen2 = ["poke-engine/gen2"]
+gen3 = ["poke-engine/gen3"]
+gen4 = ["poke-engine/gen4"]
+gen5 = ["poke-engine/gen5"]
+gen6 = ["poke-engine/gen6"]
+gen7 = ["poke-engine/gen7"]
+gen8 = ["poke-engine/gen8"]
+gen9 = ["poke-engine/gen9"]
+terastallization = ["poke-engine/terastallization"]
