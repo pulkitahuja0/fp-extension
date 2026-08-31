@@ -1,6 +1,10 @@
-import { bestMove } from './wasm-loader.js';
 import { buildState } from './state-builder.js';
-import { predictOpponentTeam } from './predict/predictor.js';
+import { generationMechanicsForFormat } from './wasm-loader.js';
+import { loadPredictionData } from './predict/predictor.js';
+import { sampleWorlds } from './predict/worlds.js';
+import { MctsPool } from './predict/mcts-pool.js';
+import { aggregateMoves, agreementCount } from './predict/aggregate.js';
+import { toId } from './predict/normalize.js';
 
 const calcBtn = document.getElementById('calc');
 const statusEl = document.getElementById('status');
@@ -8,9 +12,14 @@ const resultsEl = document.getElementById('results');
 const metaEl = document.getElementById('meta');
 const myMovesEl = document.getElementById('my-moves');
 const oppMovesEl = document.getElementById('opp-moves');
-const iterationsEl = document.getElementById('iterations');
+const myMovesHeadingEl = document.getElementById('my-moves-heading');
+const oppMovesHeadingEl = document.getElementById('opp-moves-heading');
+const searchBudgetEl = document.getElementById('search-budget');
+
+let pool = null;
 
 calcBtn.addEventListener('click', run);
+window.addEventListener('unload', () => pool && pool.terminate());
 
 function setStatus(text, isError = false) {
     statusEl.textContent = text;
@@ -47,27 +56,48 @@ async function run() {
         return fail((snapshot && snapshot.error) || 'No active battle found on this tab.');
     }
 
-    setStatus('Predicting opponent sets…');
-    await predictOpponentTeam(snapshot.oppSide, snapshot.formatId, {
-        moveMeta: snapshot.moveMeta,
-        dexMeta: snapshot.dexMeta,
-    });
+    const [numWorlds, iterationsPerWorld] = searchBudgetEl.value.split(',').map(Number);
 
-    setStatus('Building state…');
-    let stateStr;
+    setStatus('Predicting opponent sets…');
+    let gen, predictionData, worlds;
     try {
-        stateStr = buildState(snapshot);
+        gen = generationMechanicsForFormat(snapshot.formatId);
+        predictionData = await loadPredictionData(snapshot.formatId);
+        worlds = sampleWorlds(snapshot, predictionData, gen, numWorlds);
     } catch (e) {
-        return fail('Failed to read the battle state: ' + e.message);
+        return fail('Failed to predict the opponent\'s team: ' + (e && e.message ? e.message : e));
     }
 
-    setStatus('Thinking… keep this popup open.');
-    const iterations = parseInt(iterationsEl.value, 10);
+    setStatus('Building states…');
+    const jobs = [];
+    for (const world of worlds) {
+        let stateStr;
+        try {
+            stateStr = buildState({ ...snapshot, oppSide: world.oppSide });
+        } catch (e) {
+            continue; // skip a world whose sampled state failed to build rather than aborting the whole search
+        }
+        jobs.push({ formatId: snapshot.formatId, stateStr, maxIterations: iterationsPerWorld, options: { tera: true }, weight: world.weight });
+    }
+    if (!jobs.length) {
+        return fail('Could not build a search state for any sampled world.');
+    }
+
+    setStatus(`Thinking across ${jobs.length} sampled worlds… keep this popup open.`);
     const started = performance.now();
     try {
-        const result = await bestMove(snapshot.formatId, stateStr, iterations, { tera: true });
+        if (!pool) pool = new MctsPool();
+        const outcomes = await pool.runAll(jobs);
         const elapsed = ((performance.now() - started) / 1000).toFixed(1);
-        renderResult(result, elapsed);
+
+        const worldResults = outcomes.map((o, i) => ({ result: o.result || null, weight: jobs[i].weight }));
+        const failures = outcomes.filter((o) => o.error).length;
+
+        const rosterSpecies = {
+            side_one: new Set(snapshot.mySide.pokemon.filter(Boolean).map((p) => toId(p.species))),
+            side_two: new Set(snapshot.oppSide.pokemon.filter(Boolean).map((p) => toId(p.species))),
+        };
+        renderResult(worldResults, jobs.length, failures, elapsed, !!snapshot.teamPreview, rosterSpecies);
         setStatus('');
     } catch (e) {
         return fail('Engine error: ' + (e && e.message ? e.message : e));
@@ -76,40 +106,55 @@ async function run() {
     }
 }
 
-// `avg_score` is poke-engine's raw internal evaluation (a mix of heuristic
-// board-state points and ±1 terminal win/loss reward), not a bounded
-// probability — so we rank by it but display `visits` (how much of the
-// search budget the tree devoted to this move, i.e. how strongly MCTS
-// converged on it) as the intuitive "confidence" bar.
-function renderMoveList(el, moves) {
+// poke-engine's MoveChoice::to_string() (rs-wasm/vendor/poke-engine/src/genx/state.rs)
+// returns bare names with no "move:"/"switch:" prefix — "closecombat",
+// "garchomp", "closecombat-tera" — so a switch can't be told apart from a
+// move by the string alone. `speciesIds` is this side's known roster (from
+// the snapshot, not the search result) — a choice is a switch/lead pick iff
+// its name (stripped of a trailing -tera/-mega suffix, which only ever
+// applies to move choices) matches a roster species id.
+function formatChoice(choice, speciesIds, teamPreview) {
+    const bareId = choice.replace(/-(tera|mega)$/, '');
+    const isSwitch = speciesIds.has(bareId);
+    const label = choice.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const prefix = isSwitch && !teamPreview ? 'Switch to ' : '';
+    return prefix + label;
+}
+
+function renderMoveList(el, worldResults, side, speciesIds, teamPreview) {
     el.innerHTML = '';
-    const sorted = [...moves].sort((a, b) => b.avg_score - a.avg_score);
-    const totalVisits = Math.max(1, sorted.reduce((sum, m) => sum + m.visits, 0));
-    for (const [i, m] of sorted.entries()) {
+    const { ranked, choice } = aggregateMoves(worldResults, side);
+    const { agree, total } = agreementCount(worldResults, side, choice);
+    const totalScore = ranked.reduce((sum, [, score]) => sum + score, 0) || 1;
+
+    for (const [i, [move, score]] of ranked.entries()) {
+        const pct = (score / totalScore) * 100;
         const li = document.createElement('li');
+        li.classList.toggle('chosen', move === choice);
         li.innerHTML = `
             <span class="move-rank">${i + 1}</span>
             <span class="move-name">
-                ${formatChoice(m.choice)}
-                <div class="bar-track"><div class="bar-fill" style="width:${(m.visits / totalVisits) * 100}%"></div></div>
+                ${formatChoice(move, speciesIds, teamPreview)}
+                <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
             </span>
-            <span class="move-score">${((m.visits / totalVisits) * 100).toFixed(0)}%</span>
+            <span class="move-score">${pct.toFixed(0)}%</span>
         `;
         el.appendChild(li);
     }
+
+    return { choice, agree, total };
 }
 
-function formatChoice(choice) {
-    // poke-engine choice strings look like "move:closecombat", "switch:garchomp", "move:closecombat-tera"
-    const [kind, name] = choice.split(':');
-    const label = (name || choice).replace(/-/g, ' ');
-    const prefix = kind === 'switch' ? 'Switch to ' : '';
-    return prefix + label.replace(/\b\w/g, (c) => c.toUpperCase());
-}
+function renderResult(worldResults, worldCount, failures, elapsed, teamPreview, rosterSpecies) {
+    myMovesHeadingEl.textContent = teamPreview ? 'Best lead' : 'Your options';
+    oppMovesHeadingEl.textContent = teamPreview ? 'Likely opponent lead' : 'Likely opponent response';
 
-function renderResult(result, elapsed) {
-    renderMoveList(myMovesEl, result.side_one);
-    renderMoveList(oppMovesEl, result.side_two);
-    metaEl.textContent = `${result.iterations} simulations in ${elapsed}s`;
+    const mine = renderMoveList(myMovesEl, worldResults, 'side_one', rosterSpecies.side_one, teamPreview);
+    renderMoveList(oppMovesEl, worldResults, 'side_two', rosterSpecies.side_two, teamPreview);
+
+    const failureNote = failures ? `, ${failures} world${failures === 1 ? '' : 's'} failed` : '';
+    const agreementNote = mine.total ? ` — ${mine.agree}/${mine.total} worlds' own top pick agrees` : '';
+    const teamPreviewNote = teamPreview ? ' — enter this order in Showdown\'s own team-preview screen' : '';
+    metaEl.textContent = `${worldCount} sampled worlds in ${elapsed}s${failureNote}${agreementNote}${teamPreviewNote}`;
     resultsEl.hidden = false;
 }

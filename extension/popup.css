@@ -71,6 +71,19 @@ h2 {
   font-weight: 700;
 }
 
+/* The move actually picked by the weighted-random draw among near-top
+   contenders (extension/predict/aggregate.js) — may not be the #1-ranked
+   entry above, since it's not always argmax. */
+.move-list li.chosen {
+  background: #eef1fc;
+  border-radius: 4px;
+}
+
+.move-list li.chosen .move-rank::after {
+  content: ' ✓';
+  color: #3a5fcd;
+}
+
 .move-rank {
   color: #999;
   width: 14px;

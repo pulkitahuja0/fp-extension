@@ -43,7 +43,11 @@ const STATUS_MAP = {
     tox: 'toxic',
 };
 
-function calcStat(base, level, isHP, iv, ev, natureMod) {
+// Exported for extension/inference/choice-scarf.js, which needs the same
+// modern (gen3+) stat formula to evaluate a hypothesized speed spread —
+// Choice Scarf doesn't exist before gen4, so it never needs the gen1/2
+// formula branch estimateStats() below picks between.
+export function calcStat(base, level, isHP, iv, ev, natureMod) {
     if (isHP) {
         if (base === 1) return 1; // Shedinja
         return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
@@ -85,8 +89,16 @@ function serializeMove(move, gen) {
     return `${id};${disabled};${pp}`;
 }
 
+// hp=0 (fainted) is deliberate: poke-engine's add_switches() only offers a
+// switch to a Pokemon with hp > 0, so a live/hp=100 placeholder here would
+// make the engine treat "switch to an empty roster slot" as a real option —
+// it would still stringify as a real-looking (if blank) choice, since every
+// empty slot shares the same NONE species name, so several of these ghost
+// options collapse into one indistinguishable, artificially-inflated choice
+// once anything (e.g. extension/predict/aggregate.js) sums option weights by
+// their string label across searches.
 const EMPTY_POKEMON =
-    'NONE,100,NORMAL,TYPELESS,NORMAL,TYPELESS,100,100,NONE,NONE,NONE,SERIOUS,,100,100,100,100,100,NONE,0,0,1,' +
+    'NONE,100,NORMAL,TYPELESS,NORMAL,TYPELESS,0,100,NONE,NONE,NONE,SERIOUS,,100,100,100,100,100,NONE,0,0,1,' +
     'NONE;false;32,NONE;false;32,NONE;false;32,NONE;false;32,false,false,NORMAL';
 
 function serializePokemon(p, gen) {
@@ -200,5 +212,12 @@ export function buildState(snapshot) {
     const weather = `${(WEATHER_MAP[snapshot.weather] || 'none').toUpperCase()};${snapshot.weatherTurns || 0}`;
     const terrain = `${(snapshot.terrain || 'none').toUpperCase()};${snapshot.terrainTurns || 0}`;
     const trickRoom = `${snapshot.trickRoom ? 'true' : 'false'};${snapshot.trickRoomTurns || 0}`;
-    return [sideOne, sideTwo, weather, terrain, trickRoom, 'false'].join('/');
+    // At the team-preview node, poke-engine's root_get_all_options() ignores
+    // active_index entirely and instead offers a switch-choice for every
+    // living roster member on each side (see
+    // rs-wasm/vendor/poke-engine/src/genx/state.rs's root_get_all_options) —
+    // so a search against this state naturally ranks "which Pokemon to lead
+    // with" rather than a battle move.
+    const teamPreview = snapshot.teamPreview ? 'true' : 'false';
+    return [sideOne, sideTwo, weather, terrain, trickRoom, teamPreview].join('/');
 }

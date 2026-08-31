@@ -8,11 +8,11 @@
 <body>
   <header>
     <h1>Foul Play</h1>
-    <select id="iterations" title="More iterations = stronger but slower">
-      <option value="1500">Quick</option>
-      <option value="5000">Normal</option>
-      <option value="15000">Thorough</option>
-      <option value="50000" selected>Rigorous</option>
+    <select id="search-budget" title="More sampled worlds & iterations = stronger but slower">
+      <option value="4,1500">Quick</option>
+      <option value="6,3000">Normal</option>
+      <option value="8,6000" selected>Thorough</option>
+      <option value="10,12000">Rigorous</option>
     </select>
   </header>
 
@@ -21,11 +21,11 @@
 
   <div id="results" hidden>
     <section>
-      <h2>Your options</h2>
+      <h2 id="my-moves-heading">Your options</h2>
       <ol id="my-moves" class="move-list"></ol>
     </section>
     <section>
-      <h2>Likely opponent response</h2>
+      <h2 id="opp-moves-heading">Likely opponent response</h2>
       <ol id="opp-moves" class="move-list"></ol>
     </section>
     <p class="meta" id="meta"></p>

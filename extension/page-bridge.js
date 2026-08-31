@@ -150,6 +150,7 @@
         const volatiles = Object.keys(live.volatiles || {}).filter((v) => VOLATILE_ALLOWLIST.has(v));
 
         return {
+            ident: live.ident || null,
             species: id,
             level: live.level || server?.level || 100,
             baseTypes,
@@ -250,6 +251,10 @@
                 types,
                 weightkg: data.weightkg || 1,
                 baseSpecies: data.baseSpecies ? toID(data.baseSpecies) : null,
+                // Mega-evolution forms carry the stone/orb that triggers them
+                // here (e.g. "charizardmegax" -> "charizarditex") — used by
+                // extension/predict/worlds.js to sample mega evolution.
+                requiredItem: data.requiredItem ? toID(data.requiredItem) : null,
             };
         }
         return meta;
@@ -266,9 +271,7 @@
             return { error: `Could not determine the format from room id "${room.id}".` };
         }
 
-        if (room.request && room.request.requestType === 'team') {
-            return { error: 'Team preview is not supported yet — open the popup once the battle has started.', teamPreview: true };
-        }
+        const teamPreview = !!(room.request && room.request.requestType === 'team');
         if (battle.gameType !== 'singles') {
             return { error: `Only single battles are supported (this is "${battle.gameType}").`, doubles: true };
         }
@@ -309,6 +312,7 @@
         return {
             formatId: match[1],
             gen: battle.gen || 9,
+            teamPreview,
             weather,
             weatherTurns,
             terrain,
@@ -317,6 +321,15 @@
             trickRoomTurns,
             mySide,
             oppSide,
+            // "p1"/"p2" — which protocol-line prefix is ours. Needed by
+            // extension/inference/log-events.js to attribute raw stepQueue
+            // lines (which use p1/p2, not near/far) to the right side.
+            mySideId: battle.nearSide && battle.nearSide.id,
+            // Raw per-line protocol history for this battle, exposed so
+            // extension/inference/*.js can replay recent turns for signals
+            // (speed order, damage rolls, hazard triggers, ...) that this
+            // already-summarized snapshot doesn't carry on its own.
+            stepQueue: battle.stepQueue || [],
             moveMeta: buildMoveMeta(),
             dexMeta: buildDexMeta(),
         };

@@ -12,7 +12,8 @@
     ],
     "host_permissions": [
         "https://play.pokemonshowdown.com/*",
-        "https://www.smogon.com/*"
+        "https://www.smogon.com/*",
+        "https://data.foulplay.cc/*"
     ],
     "content_scripts": [
         {

@@ -135,3 +135,31 @@ export async function buildSmogonData(formatId) {
     }
     return perPokemon;
 }
+
+function traitComboAllowed(combo, revealed, impossible) {
+    if (revealed.ability && combo.ability !== revealed.ability) return false;
+    if (revealed.item && combo.item !== revealed.item) return false;
+    if (impossible) {
+        if (impossible.abilities && impossible.abilities.has(combo.ability)) return false;
+        if (impossible.items && impossible.items.has(combo.item)) return false;
+    }
+    return true;
+}
+
+// Weighted-random pick among trait combos consistent with what's revealed
+// (and not yet ruled out by inference) — Smogon usage counts *are* trusted
+// as representative here, unlike TeamDatasets' uniform sampling, matching
+// fp/search/standard_battles.py's `random.choices(..., weights=[s.count...])`.
+export function sampleTraitCombo(speciesData, revealed, impossible) {
+    if (!speciesData) return null;
+    const candidates = speciesData.traitCombos.filter((c) => traitComboAllowed(c, revealed, impossible));
+    if (!candidates.length) return null;
+    const total = candidates.reduce((sum, c) => sum + c.count, 0);
+    if (total <= 0) return candidates[0];
+    let r = Math.random() * total;
+    for (const c of candidates) {
+        r -= c.count;
+        if (r <= 0) return c;
+    }
+    return candidates[candidates.length - 1];
+}

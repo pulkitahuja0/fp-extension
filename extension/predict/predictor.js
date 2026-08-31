@@ -1,17 +1,26 @@
-// Orchestrator — the only module popup.js calls. Fills in an opponent
-// side's unrevealed traits (ability/item/moves/nature/EVs/tera) and,
-// where a slot is still completely unseen, guesses the remaining species
-// too. Mirrors foul-play's overall approach (fp/battle + fp/data/sets) but
-// simplified to produce one best-guess state instead of a distribution,
-// since poke-engine's WASM build here takes a single fixed state per call
-// (see state-builder.js's own doc comment on this same limitation).
+// Data-fetching/caching bootstrap plus single-Pokemon sampling primitives —
+// mirrors foul-play's fp/data/sets (dataset access) and the per-Pokemon
+// sampling half of fp/search/standard_battles.py's sample_pokemon. Multi-
+// world orchestration (sampling N full hypothesis opponent teams) lives in
+// extension/predict/worlds.js, which calls the functions here once per
+// Pokemon per world.
 import { toId } from './normalize.js';
 import { resolveKey } from './species-match.js';
-import { buildSmogonData } from './smogon-sets.js';
-import { buildTeamDatasets, findMatchingFullSet } from './team-datasets.js';
+import { buildSmogonData, sampleTraitCombo } from './smogon-sets.js';
+import { buildTeamDatasets, sampleFullSet } from './team-datasets.js';
+import { sampleMoveset } from './moveset-sampling.js';
 import { fullSetMakesSense } from './set-rules.js';
 
 const DEFAULT_LEVEL = 100;
+// Even when a full matching set exists, sometimes skip straight to Smogon
+// sampling for variety across worlds — matches fp/search/standard_battles.py's
+// sample_pokemon (only applied once at least one move is already known).
+const FULL_SET_TRY_RATE = 0.75;
+
+export async function loadPredictionData(formatId) {
+    const [smogonData, teamDatasets] = await Promise.all([buildSmogonData(formatId), buildTeamDatasets(formatId)]);
+    return { smogonData, teamDatasets };
+}
 
 function revealedInfo(pkmn) {
     return {
@@ -21,32 +30,41 @@ function revealedInfo(pkmn) {
     };
 }
 
-// Smogon chaos stats have no move-to-set association, so moves are chosen
-// greedily by usage rate: always keep whatever's already revealed, then
-// add the next-most-used move that keeps the (trait combo + moves so far)
-// combination logically sound, until 4 moves are picked.
-function fillSmogonMoves(revealedMoves, moveUsage, set, moveMeta) {
-    const moves = [...revealedMoves];
-    for (const [mv] of moveUsage) {
-        if (moves.length >= 4) break;
-        if (moves.includes(mv)) continue;
-        if (fullSetMakesSense(set, [...moves, mv], moveMeta)) moves.push(mv);
-    }
-    return moves;
+function impossibleFor(pkmn) {
+    return { items: pkmn.impossibleItems || new Set(), abilities: pkmn.impossibleAbilities || new Set() };
 }
 
-function bestSmogonGuess(speciesData, revealed, moveMeta) {
-    if (!speciesData) return null;
-    for (const combo of speciesData.traitCombos) {
-        if (revealed.ability && combo.ability !== revealed.ability) continue;
-        if (revealed.item && combo.item !== revealed.item) continue;
-        const moves = fillSmogonMoves(revealed.moves, speciesData.moveUsage, combo, moveMeta);
-        return { set: combo, moves };
-    }
-    return null;
+function realMovesetsFor(speciesKey, teamDatasets) {
+    const fromReplays = teamDatasets.movesets[speciesKey] || [];
+    const fromFullSets = (teamDatasets.bySpecies[speciesKey] || []).map((s) => ({ moves: s.moves, count: s.set.count }));
+    return fromReplays.concat(fromFullSets);
 }
 
-function applyPrediction(pkmn, prediction) {
+// Returns one sampled {set, moves} prediction for this Pokemon (species
+// already known), respecting whatever's already revealed/ruled-out, or null
+// if no data source has anything usable for this species.
+export function samplePokemonSet(pkmn, { smogonData, teamDatasets, moveMeta }) {
+    const revealed = revealedInfo(pkmn);
+    const impossible = impossibleFor(pkmn);
+
+    const fullSetKey = resolveKey(pkmn.species, pkmn.baseSpecies, teamDatasets.bySpecies);
+    if (fullSetKey && (!revealed.moves.length || Math.random() < FULL_SET_TRY_RATE)) {
+        const fullSet = sampleFullSet(teamDatasets.bySpecies, fullSetKey, revealed, moveMeta, impossible);
+        if (fullSet) return fullSet;
+    }
+
+    const smogonKey = resolveKey(pkmn.species, pkmn.baseSpecies, smogonData);
+    if (!smogonKey) return null;
+    const combo = sampleTraitCombo(smogonData[smogonKey], revealed, impossible);
+    if (!combo) return null;
+    const moves = sampleMoveset(revealed.moves, realMovesetsFor(smogonKey, teamDatasets), smogonData[smogonKey].moveUsage, combo, moveMeta);
+    if (!fullSetMakesSense(combo, moves, moveMeta)) return null;
+    return { set: combo, moves };
+}
+
+// Mutates `pkmn` in place with a sampled prediction's ability/item/tera/
+// nature/EVs/moves, never overwriting anything already known.
+export function applySampledSet(pkmn, prediction) {
     if (!prediction) return;
     const { set, moves } = prediction;
     if (!pkmn.ability) pkmn.ability = set.ability;
@@ -68,30 +86,14 @@ function applyPrediction(pkmn, prediction) {
     }
 }
 
-function predictOnePokemon(pkmn, { smogonData, teamDatasets, moveMeta }) {
-    const revealed = revealedInfo(pkmn);
-
-    const fullSetKey = resolveKey(pkmn.species, pkmn.baseSpecies, teamDatasets.bySpecies);
-    if (fullSetKey) {
-        const fullSet = findMatchingFullSet(teamDatasets.bySpecies, fullSetKey, revealed, moveMeta);
-        if (fullSet) {
-            applyPrediction(pkmn, fullSet);
-            return;
-        }
-    }
-
-    const smogonKey = resolveKey(pkmn.species, pkmn.baseSpecies, smogonData);
-    if (smogonKey) {
-        applyPrediction(pkmn, bestSmogonGuess(smogonData[smogonKey], revealed, moveMeta));
-    }
-}
-
-// The "combination of Smogon usage stats and hardcoded teams" for slots
-// that haven't been revealed at all yet: prefer a hardcoded team once
-// enough of the opponent's identified Pokemon overlap with it (a
-// recognized team is a much stronger signal than aggregate stats), else
-// fall back to Smogon's Teammates co-occurrence data.
-function guessRemainingSpecies(identifiedIds, hardcodedTeams, smogonData, slotCount) {
+// One weighted-random draw of `slotCount` still-unidentified species for
+// this world — port of fp/search/standard_battles.py's
+// sample_standardbattle_pokemon / predict_team_likelihood: prefer a
+// recognized hardcoded team once enough of the opponent's identified
+// Pokemon overlap with it, else weighted-sample from average pairwise
+// Smogon teammate co-occurrence among the top 50 candidates, updating the
+// "identified" set after each pick so later picks account for earlier ones.
+export function sampleRemainingSpecies(identifiedIds, hardcodedTeams, smogonData, slotCount) {
     let bestTeam = null;
     let bestOverlap = 1; // require at least 2 shared species to prefer a hardcoded team
     for (const team of hardcodedTeams) {
@@ -108,22 +110,38 @@ function guessRemainingSpecies(identifiedIds, hardcodedTeams, smogonData, slotCo
             .map((p) => ({ species: p.species, hardcoded: p }));
     }
 
-    const scores = new Map();
-    for (const id of identifiedIds) {
-        const entry = smogonData[id];
-        if (!entry) continue;
-        for (const [teammate, count] of Object.entries(entry.teammates)) {
-            if (identifiedIds.has(teammate)) continue;
-            scores.set(teammate, (scores.get(teammate) || 0) + count);
+    const picks = [];
+    const identified = new Set(identifiedIds);
+    for (let i = 0; i < slotCount; i++) {
+        const scores = new Map();
+        for (const id of identified) {
+            const entry = smogonData[id];
+            if (!entry) continue;
+            for (const [teammate, count] of Object.entries(entry.teammates)) {
+                if (identified.has(teammate)) continue;
+                const priorUsage = smogonData[id].rawCount || 1;
+                scores.set(teammate, (scores.get(teammate) || 0) + count / priorUsage);
+            }
         }
+        const ranked = [...scores.entries()].sort((a, b) => b[1] - a[1]).slice(0, 50);
+        if (!ranked.length) break;
+        const total = ranked.reduce((sum, [, score]) => sum + score, 0);
+        let r = Math.random() * total;
+        let chosen = ranked[ranked.length - 1][0];
+        for (const [species, score] of ranked) {
+            r -= score;
+            if (r <= 0) {
+                chosen = species;
+                break;
+            }
+        }
+        picks.push({ species: chosen, hardcoded: null });
+        identified.add(chosen);
     }
-    return [...scores.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, slotCount)
-        .map(([species]) => ({ species, hardcoded: null }));
+    return picks;
 }
 
-function buildGuessedPokemon(species, level, dexMeta) {
+export function buildGuessedPokemon(species, level, dexMeta) {
     const meta = dexMeta[species];
     if (!meta) return null;
     return {
@@ -152,52 +170,4 @@ function buildGuessedPokemon(species, level, dexMeta) {
     };
 }
 
-// Mutates `oppSide` in place: fills unrevealed ability/item/moves/nature/
-// EVs/tera on Pokemon that have already been seen, and fills any still-null
-// team slots with a guessed species + set. Best-effort — on any failure
-// (offline, no data for this format) it leaves oppSide untouched and
-// state-builder.js's own neutral-default fallback takes over.
-export async function predictOpponentTeam(oppSide, formatId, { moveMeta = {}, dexMeta = {} } = {}) {
-    let smogonData = {};
-    let teamDatasets = { bySpecies: {}, hardcodedTeams: [] };
-    try {
-        [smogonData, teamDatasets] = await Promise.all([buildSmogonData(formatId), buildTeamDatasets(formatId)]);
-    } catch (e) {
-        return;
-    }
-
-    const revealedPokemon = oppSide.pokemon.filter(Boolean);
-    for (const pkmn of revealedPokemon) {
-        predictOnePokemon(pkmn, { smogonData, teamDatasets, moveMeta });
-    }
-
-    const identifiedIds = new Set(revealedPokemon.map((p) => toId(p.species)));
-    const emptySlotCount = oppSide.pokemon.reduce((n, p) => n + (p ? 0 : 1), 0);
-    if (emptySlotCount === 0) return;
-
-    const level = revealedPokemon[0] ? revealedPokemon[0].level : DEFAULT_LEVEL;
-    const guesses = guessRemainingSpecies(identifiedIds, teamDatasets.hardcodedTeams, smogonData, emptySlotCount);
-
-    let guessIndex = 0;
-    for (let i = 0; i < oppSide.pokemon.length && guessIndex < guesses.length; i++) {
-        if (oppSide.pokemon[i]) continue;
-        const guess = guesses[guessIndex++];
-        const pkmn = buildGuessedPokemon(guess.species, level, dexMeta);
-        if (!pkmn) continue;
-        if (guess.hardcoded) {
-            applyPrediction(pkmn, {
-                set: {
-                    ability: guess.hardcoded.ability,
-                    item: guess.hardcoded.item,
-                    nature: guess.hardcoded.nature,
-                    evs: guess.hardcoded.evs,
-                    teraType: guess.hardcoded.teraType,
-                },
-                moves: guess.hardcoded.moves,
-            });
-        } else {
-            predictOnePokemon(pkmn, { smogonData, teamDatasets, moveMeta });
-        }
-        oppSide.pokemon[i] = pkmn;
-    }
-}
+export { DEFAULT_LEVEL };
