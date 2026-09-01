@@ -3,9 +3,8 @@
 // not necessarily all 4 moves) has already been chosen for one sampled
 // world:
 //  Step A: sample from real observed movesets (extension/predict/team-datasets.js's
-//    per-species pool — PS sets + data.foulplay.cc + hardcoded teams),
-//    weighted by count, restricted to movesets consistent with what's
-//    already revealed.
+//    per-species pool — PS sets + data.foulplay.cc), weighted by count,
+//    restricted to movesets consistent with what's already revealed.
 //  Step B (only if step A found nothing, or didn't reach 4 moves): fill
 //    remaining slots by independent per-move Bernoulli sampling from Smogon
 //    move-usage rates, using the `1 - (1-p)^(1/n)` correction that converts

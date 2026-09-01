@@ -88,28 +88,11 @@ export function applySampledSet(pkmn, prediction) {
 
 // One weighted-random draw of `slotCount` still-unidentified species for
 // this world — port of fp/search/standard_battles.py's
-// sample_standardbattle_pokemon / predict_team_likelihood: prefer a
-// recognized hardcoded team once enough of the opponent's identified
-// Pokemon overlap with it, else weighted-sample from average pairwise
-// Smogon teammate co-occurrence among the top 50 candidates, updating the
-// "identified" set after each pick so later picks account for earlier ones.
-export function sampleRemainingSpecies(identifiedIds, hardcodedTeams, smogonData, slotCount) {
-    let bestTeam = null;
-    let bestOverlap = 1; // require at least 2 shared species to prefer a hardcoded team
-    for (const team of hardcodedTeams) {
-        const overlap = team.filter((p) => identifiedIds.has(p.species)).length;
-        if (overlap > bestOverlap) {
-            bestOverlap = overlap;
-            bestTeam = team;
-        }
-    }
-    if (bestTeam) {
-        return bestTeam
-            .filter((p) => !identifiedIds.has(p.species))
-            .slice(0, slotCount)
-            .map((p) => ({ species: p.species, hardcoded: p }));
-    }
-
+// sample_standardbattle_pokemon / predict_team_likelihood: weighted-sample
+// from average pairwise Smogon teammate co-occurrence among the top 50
+// candidates, updating the "identified" set after each pick so later picks
+// account for earlier ones.
+export function sampleRemainingSpecies(identifiedIds, smogonData, slotCount) {
     const picks = [];
     const identified = new Set(identifiedIds);
     for (let i = 0; i < slotCount; i++) {
@@ -135,7 +118,7 @@ export function sampleRemainingSpecies(identifiedIds, hardcodedTeams, smogonData
                 break;
             }
         }
-        picks.push({ species: chosen, hardcoded: null });
+        picks.push(chosen);
         identified.add(chosen);
     }
     return picks;
