@@ -28,7 +28,7 @@ export class MctsPool {
     // { result } | { error } in the same order as `jobs`.
     async runAll(jobs) {
         this._ensureWorkers();
-        const results = new Array(jobs.length);
+        const results = Array.from({ length: jobs.length });
         let nextJobIndex = 0;
 
         const runOnWorker = (worker) =>
@@ -44,7 +44,9 @@ export class MctsPool {
                     const onMessage = (event) => {
                         if (event.data.id !== id) return;
                         worker.removeEventListener('message', onMessage);
-                        results[jobIndex] = event.data.error ? { error: event.data.error } : { result: event.data.result };
+                        results[jobIndex] = event.data.error
+                            ? { error: event.data.error }
+                            : { result: event.data.result };
                         pump();
                     };
                     worker.addEventListener('message', onMessage);

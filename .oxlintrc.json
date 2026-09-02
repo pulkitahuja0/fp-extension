@@ -1,0 +1,39 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["unicorn", "oxc"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "warn",
+        "perf": "warn"
+    },
+    "env": {
+        "browser": true,
+        "webextensions": true,
+        "worker": true
+    },
+    "rules": {
+        "eqeqeq": "warn",
+        "no-var": "error",
+        "unicorn/prefer-node-protocol": "off",
+        // Sorting a freshly-built local array in place is safe and used
+        // consistently here; toSorted() isn't needed.
+        "unicorn/no-array-sort": "off",
+        // `self.onmessage =` is the standard Worker entry-point idiom
+        // (extension/predict/mcts-worker.js).
+        "unicorn/prefer-add-event-listener": "off",
+        // Worker#postMessage/self.postMessage's second argument is a transfer
+        // list, not an origin — this rule's suggested fix does not apply to
+        // Worker messaging (only to window.postMessage).
+        "unicorn/require-post-message-target-origin": "off",
+        // Leading-underscore "private" method (_ensureWorkers) and the
+        // intentional __foulPlayDebug devtools hook are deliberate, not typos.
+        "no-underscore-dangle": "off",
+        // Every await-in-loop here is an intentional early-exit sequential
+        // scan (stop at first success/failure), not an accidental serial fetch.
+        "no-await-in-loop": "off",
+        // Spreading to produce a new object inside .map() is the idiomatic,
+        // readable way to do an immutable field update.
+        "oxc/no-map-spread": "off"
+    },
+    "ignorePatterns": ["extension/wasm/**", "rs-wasm/**"]
+}

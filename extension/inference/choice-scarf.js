@@ -27,7 +27,12 @@ export function inferChoiceScarf(turnEvents, myActive, oppActive, conditions) {
     if (!conditions.gen.choiceScarfExists) return null;
     if (conditions.trickRoom) return null;
     if (oppActive.item) return null; // already known — nothing to infer
-    if (turnEvents.anySwitchedThisTurn || turnEvents.anyCant || turnEvents.anyConfusionSelfHit || turnEvents.anySpeedOverride) {
+    if (
+        turnEvents.anySwitchedThisTurn ||
+        turnEvents.anyCant ||
+        turnEvents.anyConfusionSelfHit ||
+        turnEvents.anySpeedOverride
+    ) {
         return null;
     }
     if (!myActive.statsExact) return null;

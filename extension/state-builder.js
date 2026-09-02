@@ -157,17 +157,48 @@ function serializePokemon(p, gen) {
 }
 
 const SIDE_CONDITION_ORDER = [
-    'auroraveil', 'craftyshield', 'healingwish', 'lightscreen', 'luckychant', 'lunardance',
-    'matblock', 'mist', 'protect', 'quickguard', 'reflect', 'safeguard', 'spikes', 'stealthrock',
-    'stickyweb', 'tailwind', 'toxiccount', 'toxicspikes', 'wideguard',
+    'auroraveil',
+    'craftyshield',
+    'healingwish',
+    'lightscreen',
+    'luckychant',
+    'lunardance',
+    'matblock',
+    'mist',
+    'protect',
+    'quickguard',
+    'reflect',
+    'safeguard',
+    'spikes',
+    'stealthrock',
+    'stickyweb',
+    'tailwind',
+    'toxiccount',
+    'toxicspikes',
+    'wideguard',
 ];
 
 function serializeSideConditions(sc) {
     const values = {
-        auroraveil: sc.auroraveil, craftyshield: 0, healingwish: 0, lightscreen: sc.lightscreen,
-        luckychant: sc.luckychant, lunardance: 0, matblock: 0, mist: sc.mist, protect: 0, quickguard: 0,
-        reflect: sc.reflect, safeguard: sc.safeguard, spikes: sc.spikes, stealthrock: sc.stealthrock,
-        stickyweb: sc.stickyweb, tailwind: sc.tailwind, toxiccount: 0, toxicspikes: sc.toxicSpikes, wideguard: 0,
+        auroraveil: sc.auroraveil,
+        craftyshield: 0,
+        healingwish: 0,
+        lightscreen: sc.lightscreen,
+        luckychant: sc.luckychant,
+        lunardance: 0,
+        matblock: 0,
+        mist: sc.mist,
+        protect: 0,
+        quickguard: 0,
+        reflect: sc.reflect,
+        safeguard: sc.safeguard,
+        spikes: sc.spikes,
+        stealthrock: sc.stealthrock,
+        stickyweb: sc.stickyweb,
+        tailwind: sc.tailwind,
+        toxiccount: 0,
+        toxicspikes: sc.toxicSpikes,
+        wideguard: 0,
     };
     return SIDE_CONDITION_ORDER.map((k) => values[k] || 0).join(';');
 }

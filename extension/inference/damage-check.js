@@ -23,8 +23,19 @@ const ROLL_WINDOW = 0.85; // PS's 16-value damage roll spans 85%-100% of the max
 // multi-hit/variable-power moves whose single-hit damage isn't a clean
 // function of the attacker's stats alone.
 const EXCLUDED_MOVES = new Set([
-    'pursuit', 'struggle', 'counter', 'mirrorcoat', 'metalburst', 'foulplay',
-    'meteorbeam', 'electroshot', 'ficklebeam', 'lashout', 'ragefist', 'shellsidearm', 'futuresight',
+    'pursuit',
+    'struggle',
+    'counter',
+    'mirrorcoat',
+    'metalburst',
+    'foulplay',
+    'meteorbeam',
+    'electroshot',
+    'ficklebeam',
+    'lashout',
+    'ragefist',
+    'shellsidearm',
+    'futuresight',
 ]);
 
 function isCheckable(damageEvent) {
@@ -56,7 +67,7 @@ export async function candidateSurvivesDamageCheck(snapshot, candidateOppPkmn, d
     let stateStr;
     try {
         stateStr = buildState(hypothetical);
-    } catch (e) {
+    } catch {
         return true; // malformed hypothesis — don't let a plumbing error prune a candidate
     }
 
@@ -67,7 +78,7 @@ export async function candidateSurvivesDamageCheck(snapshot, candidateOppPkmn, d
     let result;
     try {
         result = await damageRolls(formatId, stateStr, sideOneMove, sideTwoMove, sideOneAttacks);
-    } catch (e) {
+    } catch {
         return true;
     }
     const rolls = sideOneAttacks ? result.side_one : result.side_two;

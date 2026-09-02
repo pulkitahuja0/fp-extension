@@ -8,7 +8,13 @@
 // constants capture.
 
 const ABILITIES_REVEALED_ON_SWITCH_IN = [
-    'intimidate', 'pressure', 'neutralizinggas', 'sandstream', 'drought', 'drizzle', 'snowwarning',
+    'intimidate',
+    'pressure',
+    'neutralizinggas',
+    'sandstream',
+    'drought',
+    'drizzle',
+    'snowwarning',
 ];
 const ITEMS_REVEALED_ON_SWITCH_IN = ['boosterenergy', 'airballoon'];
 

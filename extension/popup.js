@@ -39,10 +39,10 @@ async function run() {
     let tab;
     try {
         [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    } catch (e) {
+    } catch {
         return fail('Could not access the current tab.');
     }
-    if (!tab || !/^https:\/\/play\.pokemonshowdown\.com\//.test(tab.url || '')) {
+    if (!tab || !(tab.url || '').startsWith('https://play.pokemonshowdown.com/')) {
         return fail('Open a Pokémon Showdown battle tab first.');
     }
 
@@ -50,7 +50,9 @@ async function run() {
     try {
         snapshot = await chrome.tabs.sendMessage(tab.id, { type: 'fp-get-snapshot' });
     } catch (e) {
-        return fail('Could not reach the page — try reloading the Showdown tab. (' + (e && e.message ? e.message : e) + ')');
+        return fail(
+            'Could not reach the page — try reloading the Showdown tab. (' + (e && e.message ? e.message : e) + ')'
+        );
     }
     if (!snapshot || snapshot.error) {
         return fail((snapshot && snapshot.error) || 'No active battle found on this tab.');
@@ -65,7 +67,7 @@ async function run() {
         predictionData = await loadPredictionData(snapshot.formatId);
         worlds = sampleWorlds(snapshot, predictionData, gen, numWorlds);
     } catch (e) {
-        return fail('Failed to predict the opponent\'s team: ' + (e && e.message ? e.message : e));
+        return fail("Failed to predict the opponent's team: " + (e && e.message ? e.message : e));
     }
 
     setStatus('Building states…');
@@ -74,10 +76,16 @@ async function run() {
         let stateStr;
         try {
             stateStr = buildState({ ...snapshot, oppSide: world.oppSide });
-        } catch (e) {
+        } catch {
             continue; // skip a world whose sampled state failed to build rather than aborting the whole search
         }
-        jobs.push({ formatId: snapshot.formatId, stateStr, maxIterations: iterationsPerWorld, options: { tera: true }, weight: world.weight });
+        jobs.push({
+            formatId: snapshot.formatId,
+            stateStr,
+            maxIterations: iterationsPerWorld,
+            options: { tera: true },
+            weight: world.weight,
+        });
     }
     if (!jobs.length) {
         return fail('Could not build a search state for any sampled world.');
@@ -154,7 +162,7 @@ function renderResult(worldResults, worldCount, failures, elapsed, teamPreview, 
 
     const failureNote = failures ? `, ${failures} world${failures === 1 ? '' : 's'} failed` : '';
     const agreementNote = mine.total ? ` — ${mine.agree}/${mine.total} worlds' own top pick agrees` : '';
-    const teamPreviewNote = teamPreview ? ' — enter this order in Showdown\'s own team-preview screen' : '';
+    const teamPreviewNote = teamPreview ? " — enter this order in Showdown's own team-preview screen" : '';
     metaEl.textContent = `${worldCount} sampled worlds in ${elapsed}s${failureNote}${agreementNote}${teamPreviewNote}`;
     resultsEl.hidden = false;
 }

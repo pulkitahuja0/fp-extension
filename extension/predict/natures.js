@@ -2,7 +2,11 @@
 // nature boosts/hinders (10% each); the 5 neutral natures (hardy, docile,
 // serious, bashful, quirky) have neither.
 const NATURES = {
-    hardy: {}, docile: {}, serious: {}, bashful: {}, quirky: {},
+    hardy: {},
+    docile: {},
+    serious: {},
+    bashful: {},
+    quirky: {},
     lonely: { plus: 'atk', minus: 'def' },
     brave: { plus: 'atk', minus: 'spe' },
     adamant: { plus: 'atk', minus: 'spa' },

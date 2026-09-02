@@ -4,12 +4,13 @@
 // world orchestration (sampling N full hypothesis opponent teams) lives in
 // extension/predict/worlds.js, which calls the functions here once per
 // Pokemon per world.
-import { toId } from './normalize.js';
 import { resolveKey } from './species-match.js';
 import { buildSmogonData, sampleTraitCombo } from './smogon-sets.js';
 import { buildTeamDatasets, sampleFullSet } from './team-datasets.js';
 import { sampleMoveset } from './moveset-sampling.js';
 import { fullSetMakesSense } from './set-rules.js';
+import { isRandomBattleFormat } from './generations.js';
+import { buildRandbatsData } from './randbats.js';
 
 const DEFAULT_LEVEL = 100;
 // Even when a full matching set exists, sometimes skip straight to Smogon
@@ -17,7 +18,14 @@ const DEFAULT_LEVEL = 100;
 // sample_pokemon (only applied once at least one move is already known).
 const FULL_SET_TRY_RATE = 0.75;
 
+// Random battle formats skip Smogon/team-dataset loading entirely — their
+// opponent sets come from Pokemon Showdown's own fixed per-species pool
+// (extension/predict/randbats.js) instead, sampled by
+// extension/predict/random-worlds.js rather than this module.
 export async function loadPredictionData(formatId) {
+    if (isRandomBattleFormat(formatId)) {
+        return { randbats: await buildRandbatsData(formatId) };
+    }
     const [smogonData, teamDatasets] = await Promise.all([buildSmogonData(formatId), buildTeamDatasets(formatId)]);
     return { smogonData, teamDatasets };
 }
@@ -36,7 +44,10 @@ function impossibleFor(pkmn) {
 
 function realMovesetsFor(speciesKey, teamDatasets) {
     const fromReplays = teamDatasets.movesets[speciesKey] || [];
-    const fromFullSets = (teamDatasets.bySpecies[speciesKey] || []).map((s) => ({ moves: s.moves, count: s.set.count }));
+    const fromFullSets = (teamDatasets.bySpecies[speciesKey] || []).map((s) => ({
+        moves: s.moves,
+        count: s.set.count,
+    }));
     return fromReplays.concat(fromFullSets);
 }
 
@@ -57,7 +68,13 @@ export function samplePokemonSet(pkmn, { smogonData, teamDatasets, moveMeta }) {
     if (!smogonKey) return null;
     const combo = sampleTraitCombo(smogonData[smogonKey], revealed, impossible);
     if (!combo) return null;
-    const moves = sampleMoveset(revealed.moves, realMovesetsFor(smogonKey, teamDatasets), smogonData[smogonKey].moveUsage, combo, moveMeta);
+    const moves = sampleMoveset(
+        revealed.moves,
+        realMovesetsFor(smogonKey, teamDatasets),
+        smogonData[smogonKey].moveUsage,
+        combo,
+        moveMeta
+    );
     if (!fullSetMakesSense(combo, moves, moveMeta)) return null;
     return { set: combo, moves };
 }
