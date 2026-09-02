@@ -118,3 +118,12 @@ export function genNumberFromFormat(formatId) {
     if (!match) throw new Error(`Could not determine generation from format id: ${formatId}`);
     return Number(match[1]);
 }
+
+// Port of fp/format_spec.py's `"random" in format_string` battle-type check:
+// random battle formats (gen9randombattle, gen9randomdoublesbattle, ...) get
+// their opponent's team from Pokemon Showdown's own fixed per-species set
+// pool, not from Smogon usage stats or observed teams — see
+// extension/predict/randbats.js and extension/predict/random-worlds.js.
+export function isRandomBattleFormat(formatId) {
+    return formatId.includes('random');
+}

@@ -18,6 +18,7 @@ import {
     buildGuessedPokemon,
     DEFAULT_LEVEL,
 } from './predictor.js';
+import { sampleRandomBattleWorlds } from './random-worlds.js';
 
 const SPEED_RETRY_ATTEMPTS = 5;
 
@@ -92,6 +93,10 @@ function maybeSampleMega(pkmn, { smogonData, dexMeta, gen }) {
 // [{ oppSide, weight }, ...], `numWorlds` entries, weight = 1/numWorlds
 // (uniform, matching foul-play's prepare_battles).
 export function sampleWorlds(snapshot, predictionData, gen, numWorlds) {
+    if (predictionData.randbats) {
+        return sampleRandomBattleWorlds(snapshot, predictionData.randbats, gen, numWorlds);
+    }
+
     const inference = runInference(snapshot, gen);
     const { smogonData, teamDatasets } = predictionData;
     const { moveMeta, dexMeta } = snapshot;

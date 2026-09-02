@@ -61,6 +61,11 @@ const CHART = {
     fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 },
 };
 
+// All 18 attacking types, for callers that need to iterate the whole chart
+// (e.g. extension/predict/random-worlds.js's PS team-generation weakness
+// checks) rather than look up one at a time.
+export const ALL_TYPES = Object.keys(CHART);
+
 // `attackType`/`defendTypes` are lowercase type ids (e.g. 'fire'); a
 // TYPELESS second type contributes no multiplier.
 export function typeEffectiveness(attackType, defendTypes) {
