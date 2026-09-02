@@ -3,7 +3,7 @@
 // data/sets/<format>.json (a `dex` table of Smogon-analysis sets plus a
 // `stats` table of top-usage sets). Unlike Smogon's chaos stats, these are
 // full sets — ability/item/nature/EVs/moves all joined together — so they
-// slot directly into team-datasets.js's pool alongside hardcoded teams.
+// slot directly into team-datasets.js's pool.
 import { toId } from './normalize.js';
 import { sessionCacheGet, sessionCacheSet } from './cache.js';
 

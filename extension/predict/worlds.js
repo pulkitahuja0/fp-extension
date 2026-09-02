@@ -106,28 +106,15 @@ export function sampleWorlds(snapshot, predictionData, gen, numWorlds) {
         const emptySlotCount = oppSide.pokemon.reduce((n, p) => n + (p ? 0 : 1), 0);
         if (emptySlotCount > 0) {
             const level = revealedPokemon[0] ? revealedPokemon[0].level : DEFAULT_LEVEL;
-            const guesses = sampleRemainingSpecies(identifiedIds, teamDatasets.hardcodedTeams, smogonData, emptySlotCount);
+            const guesses = sampleRemainingSpecies(identifiedIds, smogonData, emptySlotCount);
             let guessIndex = 0;
             for (let slot = 0; slot < oppSide.pokemon.length && guessIndex < guesses.length; slot++) {
                 if (oppSide.pokemon[slot]) continue;
-                const guess = guesses[guessIndex++];
-                const pkmn = buildGuessedPokemon(guess.species, level, dexMeta);
+                const species = guesses[guessIndex++];
+                const pkmn = buildGuessedPokemon(species, level, dexMeta);
                 if (!pkmn) continue;
-                if (guess.hardcoded) {
-                    applySampledSet(pkmn, {
-                        set: {
-                            ability: guess.hardcoded.ability,
-                            item: guess.hardcoded.item,
-                            nature: guess.hardcoded.nature,
-                            evs: guess.hardcoded.evs,
-                            teraType: guess.hardcoded.teraType,
-                        },
-                        moves: guess.hardcoded.moves,
-                    });
-                } else {
-                    maybeSampleMega(pkmn, { smogonData, dexMeta, gen });
-                    applySampledSet(pkmn, samplePokemonSet(pkmn, context));
-                }
+                maybeSampleMega(pkmn, { smogonData, dexMeta, gen });
+                applySampledSet(pkmn, samplePokemonSet(pkmn, context));
                 oppSide.pokemon[slot] = pkmn;
             }
         }

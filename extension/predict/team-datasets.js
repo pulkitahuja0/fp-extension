@@ -1,19 +1,14 @@
 // Port of foul-play's fp/data/sets/team_datasets.py (TeamDatasets): merges
-// Pokemon Showdown's own curated sets (ps-sets.js), foul-play's own hosted
-// full-set + replay-derived movesets dataset (foulplay-cc.js), and the
-// user's hardcoded teams (hardcoded-teams.js) into one pool of *full* sets —
-// trait combo and exact moveset joined, unlike Smogon's marginal-only data.
-// PS sets and foulplay.cc sets are summed by exact matching set-string
-// before being decoded (mirrors _get_sets_dict adding the two dicts
-// together by count); a hardcoded team gets a fixed high weight so a
-// recognized team dominates generic curated sets.
+// Pokemon Showdown's own curated sets (ps-sets.js) and foul-play's own
+// hosted full-set + replay-derived movesets dataset (foulplay-cc.js) into
+// one pool of *full* sets — trait combo and exact moveset joined, unlike
+// Smogon's marginal-only data. PS sets and foulplay.cc sets are summed by
+// exact matching set-string before being decoded (mirrors _get_sets_dict
+// adding the two dicts together by count).
 import { fetchPsSets } from './ps-sets.js';
 import { fetchFoulPlayCcFullSets, fetchFoulPlayCcMoves } from './foulplay-cc.js';
-import { loadHardcodedTeams } from './hardcoded-teams.js';
 import { fullSetMakesSense } from './set-rules.js';
 import { toId } from './normalize.js';
-
-const HARDCODED_TEAM_WEIGHT = 1000;
 
 function mergeCounts(dest, source) {
     for (const [species, sets] of Object.entries(source || {})) {
@@ -47,7 +42,7 @@ function decodeMovesets(raw) {
     return result;
 }
 
-// { bySpecies: { [speciesId]: [{ set, moves }, ...] }, hardcodedTeams: [[Pokemon, ...], ...], movesets: { [speciesId]: [{moves, count}] } }
+// { bySpecies: { [speciesId]: [{ set, moves }, ...] }, movesets: { [speciesId]: [{moves, count}] } }
 export async function buildTeamDatasets(formatId) {
     const [psSets, foulPlaySets, foulPlayMoves] = await Promise.all([
         fetchPsSets(formatId),
@@ -64,29 +59,11 @@ export async function buildTeamDatasets(formatId) {
         bySpecies[species] = Object.entries(sets).map(([key, count]) => decodeSetKey(key, count));
     }
 
-    const hardcodedTeams = await loadHardcodedTeams(formatId);
-    for (const team of hardcodedTeams) {
-        for (const pkmn of team) {
-            bySpecies[pkmn.species] = bySpecies[pkmn.species] || [];
-            bySpecies[pkmn.species].push({
-                set: {
-                    ability: pkmn.ability,
-                    item: pkmn.item,
-                    nature: pkmn.nature,
-                    evs: pkmn.evs,
-                    teraType: pkmn.teraType || 'typeless',
-                    count: HARDCODED_TEAM_WEIGHT,
-                },
-                moves: pkmn.moves,
-            });
-        }
-    }
-
     for (const sets of Object.values(bySpecies)) {
         sets.sort((a, b) => b.set.count - a.set.count);
     }
 
-    return { bySpecies, hardcodedTeams, movesets: decodeMovesets(foulPlayMoves) };
+    return { bySpecies, movesets: decodeMovesets(foulPlayMoves) };
 }
 
 function candidateAllowed(candidate, revealed, impossible) {
