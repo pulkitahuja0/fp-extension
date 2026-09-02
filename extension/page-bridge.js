@@ -97,6 +97,13 @@
     }
 
     function buildPokemonSnapshot({ live, server, activeMoves, gen, isMine }) {
+        // `live` is null for a team member that hasn't switched in yet (see
+        // buildSideSnapshot): `side.pokemon` only gains an entry once PS has
+        // seen a |switch|/|drag| for it, but `server` (from the |request|
+        // JSON) already knows the full team. Falling back to an empty object
+        // here lets every `live.x || ...` below resolve to the `server`
+        // value instead of throwing.
+        live = live || {};
         const speciesForme = live.speciesForme || server.speciesForme;
         const id = toID(speciesForme);
         const dex = (window.BattlePokedex && window.BattlePokedex[id]) || {};
@@ -150,7 +157,7 @@
         const volatiles = Object.keys(live.volatiles || {}).filter((v) => VOLATILE_ALLOWLIST.has(v));
 
         return {
-            ident: live.ident || null,
+            ident: live.ident || (server && server.ident) || null,
             species: id,
             level: live.level || server?.level || 100,
             baseTypes,
@@ -180,21 +187,35 @@
 
     function buildSideSnapshot(side, { myPokemon, activeRequest, isMine }) {
         const serverByIdent = new Map((myPokemon || []).map((sp) => [sp.ident, sp]));
+        const liveByIdent = new Map(side.pokemon.map((live) => [live.ident, live]));
         const activeIdent = side.active && side.active[0] ? side.active[0].ident : null;
 
-        const pokemon = side.pokemon.slice(0, 6).map((live) =>
-            buildPokemonSnapshot({
+        // `side.pokemon` only gains an entry once a team member has switched
+        // in at least once. `myPokemon` (built from the last |request| JSON)
+        // always lists the full team from the start of the battle, so use it
+        // as the roster for our own side whenever we have it — a bench
+        // Pokemon we haven't sent out yet is then still reported, enriched
+        // with live battle state (HP/status/boosts/...) once it appears in
+        // `side.pokemon`. The opponent's full team is never known ahead of
+        // time, so their roster still comes from `side.pokemon` alone.
+        const useMyPokemonRoster = isMine && myPokemon && myPokemon.length > 0;
+        const roster = useMyPokemonRoster ? myPokemon : side.pokemon;
+
+        const pokemon = roster.slice(0, 6).map((entry) => {
+            const live = useMyPokemonRoster ? liveByIdent.get(entry.ident) || null : entry;
+            const server = useMyPokemonRoster ? entry : serverByIdent.get(entry.ident) || null;
+            return buildPokemonSnapshot({
                 live,
-                server: serverByIdent.get(live.ident) || null,
-                activeMoves: live.ident === activeIdent ? activeRequest : null,
+                server,
+                activeMoves: live && live.ident === activeIdent ? activeRequest : null,
                 isMine,
-            })
-        );
+            });
+        });
         while (pokemon.length < 6) {
             pokemon.push(null); // filled in with an "unknown" placeholder by state-builder.js
         }
 
-        let activeIndex = side.pokemon.findIndex((p) => p.ident === activeIdent);
+        let activeIndex = roster.findIndex((p) => p.ident === activeIdent);
         if (activeIndex < 0) activeIndex = 0;
 
         const sc = side.sideConditions || {};
