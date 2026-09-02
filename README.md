@@ -35,6 +35,7 @@ npm run check         # lint + format:check
 There is no JS test suite; verify changes by reloading the extension and exercising it against a live battle. `window.__foulPlayDebug()` is available from a Pokemon Showdown tab's devtools console to inspect the raw battle snapshot the extension sees.
 
 See [CLAUDE.md](CLAUDE.md) for an architecture overview.
+
 ## License
 
 GPL-3.0 — see [LICENSE](LICENSE).
