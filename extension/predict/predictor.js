@@ -4,7 +4,6 @@
 // world orchestration (sampling N full hypothesis opponent teams) lives in
 // extension/predict/worlds.js, which calls the functions here once per
 // Pokemon per world.
-import { toId } from './normalize.js';
 import { resolveKey } from './species-match.js';
 import { buildSmogonData, sampleTraitCombo } from './smogon-sets.js';
 import { buildTeamDatasets, sampleFullSet } from './team-datasets.js';
@@ -36,7 +35,10 @@ function impossibleFor(pkmn) {
 
 function realMovesetsFor(speciesKey, teamDatasets) {
     const fromReplays = teamDatasets.movesets[speciesKey] || [];
-    const fromFullSets = (teamDatasets.bySpecies[speciesKey] || []).map((s) => ({ moves: s.moves, count: s.set.count }));
+    const fromFullSets = (teamDatasets.bySpecies[speciesKey] || []).map((s) => ({
+        moves: s.moves,
+        count: s.set.count,
+    }));
     return fromReplays.concat(fromFullSets);
 }
 
@@ -57,7 +59,13 @@ export function samplePokemonSet(pkmn, { smogonData, teamDatasets, moveMeta }) {
     if (!smogonKey) return null;
     const combo = sampleTraitCombo(smogonData[smogonKey], revealed, impossible);
     if (!combo) return null;
-    const moves = sampleMoveset(revealed.moves, realMovesetsFor(smogonKey, teamDatasets), smogonData[smogonKey].moveUsage, combo, moveMeta);
+    const moves = sampleMoveset(
+        revealed.moves,
+        realMovesetsFor(smogonKey, teamDatasets),
+        smogonData[smogonKey].moveUsage,
+        combo,
+        moveMeta
+    );
     if (!fullSetMakesSense(combo, moves, moveMeta)) return null;
     return { set: combo, moves };
 }

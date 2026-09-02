@@ -9,12 +9,27 @@ const MAX_EV = 252;
 
 const CHOICE_ITEMS = new Set(['choiceband', 'choicespecs', 'choicescarf']);
 const TRICKABLE_ITEMS = new Set([
-    'choicespecs', 'choicescarf', 'choiceband', 'assaultvest', 'blacksludge', 'stickybarb', 'flameorb', 'toxicorb',
+    'choicespecs',
+    'choicescarf',
+    'choiceband',
+    'assaultvest',
+    'blacksludge',
+    'stickybarb',
+    'flameorb',
+    'toxicorb',
 ]);
 const PIVOT_MOVES = new Set(['uturn', 'voltswitch', 'flipturn', 'nuzzle', 'selfdestruct', 'explosion', 'knockoff']);
 const CHOICE_EXEMPT_MOVES = new Set(['trick', 'switcheroo', 'flipturn', 'uturn', 'voltswitch']);
 const PHYSICAL_BOOST_MOVES = new Set([
-    'swordsdance', 'dragondance', 'tidyup', 'sharpen', 'meditate', 'honeclaws', 'bellydrum', 'howl', 'shiftgear',
+    'swordsdance',
+    'dragondance',
+    'tidyup',
+    'sharpen',
+    'meditate',
+    'honeclaws',
+    'bellydrum',
+    'howl',
+    'shiftgear',
 ]);
 const SPECIAL_BOOST_MOVES = new Set(['nastyplot', 'tailglow']);
 
@@ -31,7 +46,9 @@ function choiceItemLogical(item, moves, moveMeta) {
     for (const mv of moves) {
         if (CHOICE_EXEMPT_MOVES.has(mv)) continue;
         const category = moveMeta[mv] ? moveMeta[mv].category : null;
-        const isLogical = logicalCategory ? category === logicalCategory : category === 'physical' || category === 'special';
+        const isLogical = logicalCategory
+            ? category === logicalCategory
+            : category === 'physical' || category === 'special';
         if (!isLogical) illogical++;
     }
     return illogical <= 1;
@@ -40,7 +57,9 @@ function choiceItemLogical(item, moves, moveMeta) {
 function boostMoveLogical(set, mv, moves, moveMeta, offensiveEvIndex, offensiveStat, otherStat) {
     if (CHOICE_ITEMS.has(set.item)) return false;
     const otherCategory = offensiveStat === 'atk' ? 'special' : 'physical';
-    const nonMatchingCount = moves.filter((m) => m !== mv && moveMeta[m] && moveMeta[m].category === otherCategory).length;
+    const nonMatchingCount = moves.filter(
+        (m) => m !== mv && moveMeta[m] && moveMeta[m].category === otherCategory
+    ).length;
     if (nonMatchingCount > 1) return false;
     if (set.evs[offensiveEvIndex] < MAX_EV / 4) return false;
     if (natureMultiplier(set.nature, otherStat) > 1 || natureMultiplier(set.nature, offensiveStat) < 1) return false;
@@ -54,7 +73,11 @@ export function traitComboMakesSense(set) {
     if (set.item === 'choiceband' && set.evs[1] < MAX_EV * 0.5) return false;
     if (set.item === 'choicespecs' && set.evs[3] < MAX_EV * 0.5) return false;
     if (set.item === 'choicescarf' && set.evs[5] < MAX_EV * 0.8) return false;
-    if ((set.item === 'lifeorb' || set.item === 'expertbelt') && set.evs[1] < MAX_EV * 0.5 && set.evs[3] < MAX_EV * 0.5) {
+    if (
+        (set.item === 'lifeorb' || set.item === 'expertbelt') &&
+        set.evs[1] < MAX_EV * 0.5 &&
+        set.evs[3] < MAX_EV * 0.5
+    ) {
         return false;
     }
     return true;
@@ -72,7 +95,8 @@ export function fullSetMakesSense(set, moves, moveMeta) {
             break;
         }
         case 'toxicorb':
-            if (!['poisonheal', 'quickfeet', 'magicguard', 'marvelscale', 'guts', 'toxicboost'].includes(set.ability)) return false;
+            if (!['poisonheal', 'quickfeet', 'magicguard', 'marvelscale', 'guts', 'toxicboost'].includes(set.ability))
+                return false;
             break;
         case 'flameorb':
             if (!['quickfeet', 'magicguard', 'guts', 'flareboost'].includes(set.ability)) return false;
@@ -88,7 +112,8 @@ export function fullSetMakesSense(set, moves, moveMeta) {
             break;
         }
         case 'assaultvest':
-            if (set.ability !== 'klutz' && moves.some((m) => moveMeta[m] && moveMeta[m].category === 'status')) return false;
+            if (set.ability !== 'klutz' && moves.some((m) => moveMeta[m] && moveMeta[m].category === 'status'))
+                return false;
             break;
     }
 

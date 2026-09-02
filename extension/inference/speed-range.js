@@ -42,7 +42,12 @@ export function defaultSpeedRange() {
 // Returns a possibly-narrowed copy of `range`, or the same object if this
 // turn's evidence doesn't apply (disqualified, or no clean 1v1 exchange).
 export function narrowSpeedRange(range, turnEvents, myActive, oppActive, conditions) {
-    if (turnEvents.anySwitchedThisTurn || turnEvents.anyCant || turnEvents.anyConfusionSelfHit || turnEvents.anySpeedOverride) {
+    if (
+        turnEvents.anySwitchedThisTurn ||
+        turnEvents.anyCant ||
+        turnEvents.anyConfusionSelfHit ||
+        turnEvents.anySpeedOverride
+    ) {
         return range;
     }
     if (!myActive.statsExact) return range; // need our own known speed stat to compare against
@@ -55,7 +60,8 @@ export function narrowSpeedRange(range, turnEvents, myActive, oppActive, conditi
 
     const myConditions = { ...conditions, tailwind: conditions.myTailwind };
     const oppConditions = { ...conditions, tailwind: conditions.oppTailwind };
-    if (couldHaveSpeedModified(myActive, myConditions) || couldHaveSpeedModified(oppActive, oppConditions)) return range;
+    if (couldHaveSpeedModified(myActive, myConditions) || couldHaveSpeedModified(oppActive, oppConditions))
+        return range;
 
     const myEffSpeed = effectiveSpeed(myActive, myActive.statsExact.spe, myConditions);
     const oppMult = knownMultiplier(oppActive, oppConditions);

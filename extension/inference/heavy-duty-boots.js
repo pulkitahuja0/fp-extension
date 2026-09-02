@@ -37,7 +37,9 @@ export function checkHeavyDutyBoots(turnEvents, oppActive, sideConditions, gen) 
 
     for (const hazard of activeHazards) {
         if (!HAZARD_SUSCEPTIBLE[hazard](oppActive)) continue;
-        const triggered = turnEvents.hazardEvents.some((e) => e.side === 'opponent' && e.hazard === hazard && e.triggered);
+        const triggered = turnEvents.hazardEvents.some(
+            (e) => e.side === 'opponent' && e.hazard === hazard && e.triggered
+        );
         return triggered ? { impossible: true } : { infer: true };
     }
     return null;

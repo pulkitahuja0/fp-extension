@@ -4,7 +4,12 @@
 // target (log-events.js already resolves the resisted/neutral/
 // super-effective/immune marker onto the move entry).
 
-import { possibleHiddenPowerTypes, isNotVeryEffective, isSuperEffective, isNeutralEffectiveness } from './type-chart.js';
+import {
+    possibleHiddenPowerTypes,
+    isNotVeryEffective,
+    isSuperEffective,
+    isNeutralEffectiveness,
+} from './type-chart.js';
 
 export function defaultHiddenPowerPossibilities() {
     return new Set(possibleHiddenPowerTypes());
@@ -16,7 +21,9 @@ export function defaultHiddenPowerPossibilities() {
 // moves don't include an opponent Hidden Power use we can read effectiveness
 // from.
 export function narrowHiddenPowerType(possibilities, turnEvents, defenderTypesByIdent) {
-    const hpMove = turnEvents.moves.find((m) => m.side === 'opponent' && m.moveId.startsWith('hiddenpower') && m.effectiveness);
+    const hpMove = turnEvents.moves.find(
+        (m) => m.side === 'opponent' && m.moveId.startsWith('hiddenpower') && m.effectiveness
+    );
     if (!hpMove) return possibilities;
     const defenderTypes = defenderTypesByIdent[hpMove.targetIdent];
     if (!defenderTypes) return possibilities;

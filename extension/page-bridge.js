@@ -61,13 +61,53 @@
     // we only forward ones that map cleanly onto poke-engine's own
     // PokemonVolatileStatus names and are meaningful as persistent state.
     const VOLATILE_ALLOWLIST = new Set([
-        'confusion', 'substitute', 'leechseed', 'taunt', 'encore', 'torment', 'attract', 'curse', 'yawn',
-        'flashfire', 'aquaring', 'ingrain', 'magnetrise', 'telekinesis', 'stockpile', 'minimize', 'saltcure',
-        'syrupbomb', 'tarshot', 'octolock', 'noretreat', 'laserfocus', 'focusenergy', 'slowstart', 'truant',
-        'unburden', 'nightmare', 'embargo', 'healblock', 'imprison', 'foresight', 'miracleeye', 'partiallytrapped',
-        'perish4', 'perish3', 'perish2', 'perish1',
-        'protosynthesisatk', 'protosynthesisdef', 'protosynthesisspa', 'protosynthesisspd', 'protosynthesisspe',
-        'quarkdriveatk', 'quarkdrivedef', 'quarkdrivespa', 'quarkdrivespd', 'quarkdrivespe',
+        'confusion',
+        'substitute',
+        'leechseed',
+        'taunt',
+        'encore',
+        'torment',
+        'attract',
+        'curse',
+        'yawn',
+        'flashfire',
+        'aquaring',
+        'ingrain',
+        'magnetrise',
+        'telekinesis',
+        'stockpile',
+        'minimize',
+        'saltcure',
+        'syrupbomb',
+        'tarshot',
+        'octolock',
+        'noretreat',
+        'laserfocus',
+        'focusenergy',
+        'slowstart',
+        'truant',
+        'unburden',
+        'nightmare',
+        'embargo',
+        'healblock',
+        'imprison',
+        'foresight',
+        'miracleeye',
+        'partiallytrapped',
+        'perish4',
+        'perish3',
+        'perish2',
+        'perish1',
+        'protosynthesisatk',
+        'protosynthesisdef',
+        'protosynthesisspa',
+        'protosynthesisspd',
+        'protosynthesisspe',
+        'quarkdriveatk',
+        'quarkdrivedef',
+        'quarkdrivespa',
+        'quarkdrivespd',
+        'quarkdrivespe',
     ]);
 
     function snapshotBoosts(boosts) {
@@ -96,7 +136,7 @@
         return (pokemon.moves || []).map((id) => ({ id: toID(id), pp: null, maxpp: null, disabled: false }));
     }
 
-    function buildPokemonSnapshot({ live, server, activeMoves, gen, isMine }) {
+    function buildPokemonSnapshot({ live, server, activeMoves, isMine }) {
         // `live` is null for a team member that hasn't switched in yet (see
         // buildSideSnapshot): `side.pokemon` only gains an entry once PS has
         // seen a |switch|/|drag| for it, but `server` (from the |request|
@@ -115,7 +155,9 @@
         const teraType = terastallized || server?.teraType || live.teraType || null;
         const types = terastallized ? [terastallized.toUpperCase(), 'TYPELESS'] : baseTypes;
 
-        let hp, maxhp, hpPercent = null;
+        let hp,
+            maxhp,
+            hpPercent = null;
         if (server) {
             hp = server.hp;
             maxhp = server.maxhp;
@@ -178,9 +220,16 @@
             weightkg: dex.weightkg || 1,
             baseSpecies: dex.baseSpecies ? toID(dex.baseSpecies) : null,
             volatiles,
-            statsExact: server && server.stats
-                ? { atk: server.stats.atk, def: server.stats.def, spa: server.stats.spa, spd: server.stats.spd, spe: server.stats.spe }
-                : null,
+            statsExact:
+                server && server.stats
+                    ? {
+                          atk: server.stats.atk,
+                          def: server.stats.def,
+                          spa: server.stats.spa,
+                          spd: server.stats.spd,
+                          spe: server.stats.spe,
+                      }
+                    : null,
             baseStats,
         };
     }

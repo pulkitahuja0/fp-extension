@@ -7,19 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A Chrome (Manifest V3) extension that ports [foul-play](https://github.com/pmariglia/foul-play) (a Pokemon Showdown bot) into the browser: it reads the live battle state out of a Pokemon Showdown tab, predicts the opponent's likely sets, runs poke-engine's MCTS search in WASM, and shows the best move in the popup. Not published to the Chrome Web Store — always run as an unpacked extension.
 
 Two halves of the repo:
-- `extension/` — plain ES modules, no bundler, no build step, no test framework, no `package.json`. Loaded directly by Chrome.
+
+- `extension/` — plain ES modules, no bundler, no build step, no test framework. Loaded directly by Chrome. `package.json` at the repo root exists only for dev tooling (lint/format), not for bundling or dependencies the extension itself needs at runtime.
 - `rs-wasm/` — a Rust crate wrapping the vendored `poke-engine` (`rs-wasm/vendor/poke-engine`) for `wasm-bindgen`, compiled to per-generation WASM bundles.
 
 ## Commands
 
 Build the WASM engines (required before the extension will run, and after any change to `rs-wasm/`):
+
 ```
 cd rs-wasm
 ./build.sh
 ```
+
 This builds ten variants (`gen1`...`gen9`, plus `gen9-tera`) via `wasm-pack build --target web`, each with a different Cargo feature set, and drops output into `extension/wasm/<variant>/` (gitignored). Requires `wasm-pack` on `PATH`.
 
 To build/check a single variant manually (e.g. while iterating on `rs-wasm/src/lib.rs`):
+
 ```
 cd rs-wasm
 wasm-pack build --target web --out-name engine --out-dir ../extension/wasm/gen9-tera -- --no-default-features --features "gen9,terastallization"
@@ -28,7 +32,18 @@ cargo check   # fast type-check without the wasm-pack/wasm-bindgen step
 
 Load/reload the extension: open `chrome://extensions`, enable Developer Mode, "Load unpacked" → select `extension/` (or click reload after rebuilding WASM / editing JS — MV3 does not hot-reload).
 
-There is no lint, format, or JS test command in this repo — none are configured. Verify JS changes by reloading the extension and exercising it against a live Pokemon Showdown battle (`__foulPlayDebug()` is exposed on the page for inspecting the raw snapshot from devtools — see below).
+Lint/format (oxlint + oxfmt — see `.oxlintrc.json` / `.oxfmtrc.json`):
+
+```
+npm run lint          # oxlint
+npm run format        # oxfmt --write
+npm run format:check  # oxfmt --check
+npm run check         # both, as CI runs it
+```
+
+There is no JS test suite. Verify JS changes by reloading the extension and exercising it against a live Pokemon Showdown battle (`__foulPlayDebug()` is exposed on the page for inspecting the raw snapshot from devtools — see below).
+
+Package for the Chrome Web Store: `npm run package` (rebuilds WASM, then zips `extension/` into `dist/fp-extension-v<version>.zip`; see [PUBLISHING.md](PUBLISHING.md)).
 
 ## Architecture
 
@@ -56,6 +71,7 @@ Most modules carry a comment at the top naming the specific foul-play Python fil
 ### rs-wasm
 
 `rs-wasm/src/lib.rs` exposes two `wasm_bindgen` functions consumed via `wasm-loader.js`:
+
 - `best_move(state_str, max_iterations)` — runs poke-engine's MCTS, always by iteration count (never wall-clock time).
 - `damage_rolls(state_str, side_one_move, side_two_move, side_one_moves_first)` — computes damage-roll windows for one hypothetical exchange without a search; used by `extension/inference/damage-check.js` to test a hypothesized opponent set against an observed damage instance.
 

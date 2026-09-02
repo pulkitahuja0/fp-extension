@@ -19,7 +19,7 @@ async function get(kind, key) {
     try {
         const result = await store.get(key);
         return result[key];
-    } catch (e) {
+    } catch {
         return undefined;
     }
 }
@@ -29,7 +29,7 @@ async function set(kind, key, value) {
     if (!store) return;
     try {
         await store.set({ [key]: value });
-    } catch (e) {
+    } catch {
         // best-effort cache; ignore quota/availability errors
     }
 }

@@ -76,10 +76,15 @@ export function runInference(snapshot, genMechanics) {
             const result = getResult(move.pokemonIdent);
             const defenderTypesByIdent = {};
             if (move.targetIdent) {
-                const defender = findByIdent(snapshot.mySide, move.targetIdent) || findByIdent(snapshot.oppSide, move.targetIdent);
+                const defender =
+                    findByIdent(snapshot.mySide, move.targetIdent) || findByIdent(snapshot.oppSide, move.targetIdent);
                 if (defender) defenderTypesByIdent[move.targetIdent] = defender.types;
             }
-            result.hiddenPowerPossibilities = narrowHiddenPowerType(result.hiddenPowerPossibilities, turn, defenderTypesByIdent);
+            result.hiddenPowerPossibilities = narrowHiddenPowerType(
+                result.hiddenPowerPossibilities,
+                turn,
+                defenderTypesByIdent
+            );
         }
     }
 

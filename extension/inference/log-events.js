@@ -145,18 +145,31 @@ function parseTurn(lines, { moveMeta, mySide }) {
                 const [ident, effect] = rest;
                 const effectId = toId(effect || '');
                 if (effectId === 'confusion') anyConfusionSelfHit = true;
-                if (effectId.includes('quickclaw') || effectId.includes('quickdraw') || effectId.includes('custapberry')) {
+                if (
+                    effectId.includes('quickclaw') ||
+                    effectId.includes('quickdraw') ||
+                    effectId.includes('custapberry')
+                ) {
                     anySpeedOverride = true;
                 }
                 const hazard = HAZARD_NAMES[(effect || '').toLowerCase()];
                 if (hazard === 'stickyweb') {
-                    hazardEvents.push({ side: sideId(ident) === mySide ? 'mine' : 'opponent', ident, hazard, triggered: true });
+                    hazardEvents.push({
+                        side: sideId(ident) === mySide ? 'mine' : 'opponent',
+                        ident,
+                        hazard,
+                        triggered: true,
+                    });
                 }
                 break;
             }
             case '-ability': {
                 const [ident, ability] = rest;
-                abilityReveals.push({ side: sideId(ident) === mySide ? 'mine' : 'opponent', ident, ability: toId(ability) });
+                abilityReveals.push({
+                    side: sideId(ident) === mySide ? 'mine' : 'opponent',
+                    ident,
+                    ability: toId(ability),
+                });
                 break;
             }
             case '-weather': {
@@ -169,7 +182,11 @@ function parseTurn(lines, { moveMeta, mySide }) {
                 const ofTag = tags.find((t) => t.startsWith('[of] '));
                 if (fromAbility && ofTag) {
                     const ident = ofTag.slice('[of] '.length);
-                    abilityReveals.push({ side: sideId(ident) === mySide ? 'mine' : 'opponent', ident, ability: fromAbility });
+                    abilityReveals.push({
+                        side: sideId(ident) === mySide ? 'mine' : 'opponent',
+                        ident,
+                        ability: fromAbility,
+                    });
                 }
                 break;
             }
@@ -211,14 +228,21 @@ function parseTurn(lines, { moveMeta, mySide }) {
                 // -resisted/-supereffective/-immune marker already seen,
                 // means neutral effectiveness (those markers, when present,
                 // always precede the -damage line in PS's protocol).
-                if (action === '-damage' && lastMove && lastMove.targetIdent === ident && lastMove.effectiveness === null) {
+                if (
+                    action === '-damage' &&
+                    lastMove &&
+                    lastMove.targetIdent === ident &&
+                    lastMove.effectiveness === null
+                ) {
                     lastMove.effectiveness = 'neutral';
                 }
 
                 // Hazard-damage: -damage with [from] Stealth Rock/Spikes and
                 // no preceding `move` this sub-action (hazards fire on
                 // switch-in, not as a move's damage).
-                const hazardTag = tags.find((t) => t.startsWith('[from]') && HAZARD_NAMES[t.slice('[from] '.length).toLowerCase()]);
+                const hazardTag = tags.find(
+                    (t) => t.startsWith('[from]') && HAZARD_NAMES[t.slice('[from] '.length).toLowerCase()]
+                );
                 if (hazardTag) {
                     const hazard = HAZARD_NAMES[hazardTag.slice('[from] '.length).toLowerCase()];
                     hazardEvents.push({ side: event.side, ident, hazard, triggered: true });
@@ -231,7 +255,12 @@ function parseTurn(lines, { moveMeta, mySide }) {
                     // Only meaningful as a toxic-spikes trigger if it happened
                     // on switch-in (no preceding move this sub-action).
                     if (!lastMove) {
-                        hazardEvents.push({ side: sideId(ident) === mySide ? 'mine' : 'opponent', ident, hazard: 'toxicspikes', triggered: true });
+                        hazardEvents.push({
+                            side: sideId(ident) === mySide ? 'mine' : 'opponent',
+                            ident,
+                            hazard: 'toxicspikes',
+                            triggered: true,
+                        });
                     }
                 }
                 break;

@@ -11,7 +11,13 @@ import { runInference, applyInference } from '../inference/index.js';
 import { toId } from './normalize.js';
 import { calcStat } from '../state-builder.js';
 import { natureMultiplier } from './natures.js';
-import { samplePokemonSet, applySampledSet, sampleRemainingSpecies, buildGuessedPokemon, DEFAULT_LEVEL } from './predictor.js';
+import {
+    samplePokemonSet,
+    applySampledSet,
+    sampleRemainingSpecies,
+    buildGuessedPokemon,
+    DEFAULT_LEVEL,
+} from './predictor.js';
 
 const SPEED_RETRY_ATTEMPTS = 5;
 

@@ -37,7 +37,7 @@ async function fetchPsSetsJson(formatId) {
         const res = await fetch(`https://play.pokemonshowdown.com/data/sets/${formatId}.json`);
         if (!res.ok) return {};
         return await res.json();
-    } catch (e) {
+    } catch {
         return {};
     }
 }

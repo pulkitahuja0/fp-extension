@@ -1,2 +1,5 @@
 rs-wasm/target
 extension/wasm
+node_modules
+dist
+.DS_Store

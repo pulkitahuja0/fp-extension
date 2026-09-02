@@ -1,15 +1,14 @@
 {
     "name": "Foul Play Extension",
     "description": "Reads the current Pokemon Showdown battle and suggests the best move using poke-engine.",
-    "version": "1.0",
+    "version": "0.1.0",
     "manifest_version": 3,
+    "homepage_url": "https://github.com/pulkitahuja0/fp-extension",
     "action": {
         "default_popup": "popup.html",
         "default_title": "Foul Play: calculate best move"
     },
-    "permissions": [
-        "storage"
-    ],
+    "permissions": ["storage"],
     "host_permissions": [
         "https://play.pokemonshowdown.com/*",
         "https://www.smogon.com/*",

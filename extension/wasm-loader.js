@@ -28,7 +28,7 @@ export async function loadEngine(variant) {
 // poke-engine has separate terastallization/no-terastallization builds.
 export function variantForFormat(formatId, { tera = true } = {}) {
     const gen = genNumberFromFormat(formatId);
-    return gen === 9 && tera ? "gen9-tera" : `gen${gen}`;
+    return gen === 9 && tera ? 'gen9-tera' : `gen${gen}`;
 }
 
 // The GenerationMechanics row (extension/predict/generations.js) inference

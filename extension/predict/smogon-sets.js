@@ -39,7 +39,7 @@ async function fetchChaosJson(baseFormat) {
                 const body = await res.json();
                 return body.data || {};
             }
-        } catch (e) {
+        } catch {
             // network error or CORS failure — try an older month
         }
     }
@@ -94,9 +94,10 @@ function buildPokemonEntry(info) {
     const items = topFractions(info['Items'], total, { limit: TOP_ITEMS });
     const abilities = topFractions(info['Abilities'], total);
     const moveUsage = topFractions(info['Moves'], total, { limit: TOP_MOVES, excludeNothing: true });
-    const teraTypes = topFractions(info['Tera Types'], total, { limit: TOP_TERA_TYPES }).map(
-        ([type, pct]) => [type === 'nothing' ? 'typeless' : type, pct]
-    );
+    const teraTypes = topFractions(info['Tera Types'], total, { limit: TOP_TERA_TYPES }).map(([type, pct]) => [
+        type === 'nothing' ? 'typeless' : type,
+        pct,
+    ]);
 
     const teammates = {};
     for (const [name, count] of Object.entries(info['Teammates'] || {})) {

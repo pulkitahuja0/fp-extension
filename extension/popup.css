@@ -1,123 +1,123 @@
 body {
-  width: 320px;
-  font-family: system-ui, sans-serif;
-  font-size: 13px;
-  margin: 0;
-  padding: 10px 12px 12px;
-  color: #1a1a1a;
+    width: 320px;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    margin: 0;
+    padding: 10px 12px 12px;
+    color: #1a1a1a;
 }
 
 header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
 
 h1 {
-  font-size: 15px;
-  margin: 0;
+    font-size: 15px;
+    margin: 0;
 }
 
 h2 {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #666;
-  margin: 10px 0 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #666;
+    margin: 10px 0 4px;
 }
 
 #calc {
-  width: 100%;
-  padding: 7px;
-  font-size: 13px;
-  cursor: pointer;
-  background: #3a5fcd;
-  color: white;
-  border: none;
-  border-radius: 4px;
+    width: 100%;
+    padding: 7px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #3a5fcd;
+    color: white;
+    border: none;
+    border-radius: 4px;
 }
 
 #calc:disabled {
-  background: #9aa8d8;
-  cursor: default;
+    background: #9aa8d8;
+    cursor: default;
 }
 
 #status {
-  min-height: 1.2em;
-  margin: 6px 0 0;
-  color: #555;
+    min-height: 1.2em;
+    margin: 6px 0 0;
+    color: #555;
 }
 
 #status.error {
-  color: #b3261e;
+    color: #b3261e;
 }
 
 .move-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .move-list li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 0;
-  border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
 }
 
 .move-list li:first-child .move-name {
-  font-weight: 700;
+    font-weight: 700;
 }
 
 /* The move actually picked by the weighted-random draw among near-top
    contenders (extension/predict/aggregate.js) — may not be the #1-ranked
    entry above, since it's not always argmax. */
 .move-list li.chosen {
-  background: #eef1fc;
-  border-radius: 4px;
+    background: #eef1fc;
+    border-radius: 4px;
 }
 
 .move-list li.chosen .move-rank::after {
-  content: ' ✓';
-  color: #3a5fcd;
+    content: ' ✓';
+    color: #3a5fcd;
 }
 
 .move-rank {
-  color: #999;
-  width: 14px;
-  text-align: right;
+    color: #999;
+    width: 14px;
+    text-align: right;
 }
 
 .move-name {
-  flex: 1;
+    flex: 1;
 }
 
 .move-score {
-  font-variant-numeric: tabular-nums;
-  color: #333;
+    font-variant-numeric: tabular-nums;
+    color: #333;
 }
 
 .bar-track {
-  position: relative;
-  height: 4px;
-  background: #eee;
-  border-radius: 2px;
-  margin-top: 1px;
+    position: relative;
+    height: 4px;
+    background: #eee;
+    border-radius: 2px;
+    margin-top: 1px;
 }
 
 .bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: #3a5fcd;
-  border-radius: 2px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: #3a5fcd;
+    border-radius: 2px;
 }
 
 .meta {
-  color: #999;
-  font-size: 11px;
-  margin-top: 8px;
+    color: #999;
+    font-size: 11px;
+    margin-top: 8px;
 }

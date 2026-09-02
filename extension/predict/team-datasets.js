@@ -27,7 +27,14 @@ function decodeSetKey(key, count) {
     const [teraType, ability, item, nature, evsStr] = parts;
     const moves = parts.slice(5).filter(Boolean);
     return {
-        set: { ability, item, nature, evs: (evsStr || '').split(',').map(Number), teraType: teraType || 'typeless', count },
+        set: {
+            ability,
+            item,
+            nature,
+            evs: (evsStr || '').split(',').map(Number),
+            teraType: teraType || 'typeless',
+            count,
+        },
         moves,
     };
 }
@@ -37,7 +44,10 @@ function decodeMovesets(raw) {
     const result = {};
     for (const [rawSpecies, entries] of Object.entries(raw || {})) {
         const species = toId(rawSpecies);
-        result[species] = Object.entries(entries).map(([key, count]) => ({ moves: key.split('|').filter(Boolean), count }));
+        result[species] = Object.entries(entries).map(([key, count]) => ({
+            moves: key.split('|').filter(Boolean),
+            count,
+        }));
     }
     return result;
 }
