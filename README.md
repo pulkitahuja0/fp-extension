@@ -2,7 +2,7 @@
 
 A Chrome extension port of [the Foul Play showdown bot](https://github.com/pmariglia/foul-play): reads the current Pokemon Showdown battle, predicts what the opponent's Pokemon are running, and searches for the best move with [poke-engine](https://github.com/pmariglia/poke-engine) compiled to WebAssembly — all in the browser, no server required.
 
-Not currently released on the Chrome Web Store. Requires opening unpacked extension in Chrome using developer mode.
+Currently available on the [Chrome Web Store](https://chromewebstore.google.com/detail/foul-play-extension/pfaplgkifnonejmjdnpognfengonijai), or free to build from source.
 
 ## Usage
 
