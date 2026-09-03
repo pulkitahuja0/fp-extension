@@ -43,7 +43,7 @@ npm run check         # both, as CI runs it
 
 There is no JS test suite. Verify JS changes by reloading the extension and exercising it against a live Pokemon Showdown battle (`__foulPlayDebug()` is exposed on the page for inspecting the raw snapshot from devtools — see below).
 
-Package for the Chrome Web Store: `npm run package` (rebuilds WASM, then zips `extension/` into `dist/fp-extension-v<version>.zip`; see [PUBLISHING.md](PUBLISHING.md)).
+Package for the Chrome Web Store: `npm run package` (rebuilds WASM, then zips `extension/` into `dist/fp-extension-v<version>.zip`;
 
 ## Architecture
 
